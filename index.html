@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REACTOR ACCESS TERMINAL</title>
+<style>
+body{
+background:#000;
+color:#00ff9c;
+font-family:"Courier New",monospace;
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+overflow:hidden;
+}
+
+/* CRT EFFECT */
+body:before{
+content:"";
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+pointer-events:none;
+background:repeating-linear-gradient(
+0deg,
+rgba(0,255,120,0.06),
+rgba(0,255,120,0.06) 2px,
+transparent 2px,
+transparent 4px
+);
+animation:flicker 0.15s infinite;
+}
+
+@keyframes flicker{
+0%{opacity:.9}
+50%{opacity:.95}
+100%{opacity:.9}
+}
+
+.terminal{
+background:#001a12;
+border:3px solid #00ff9c;
+padding:20px;
+width:420px;
+max-width:95vw;
+box-shadow:0 0 25px #00ff9c;
+border-radius:6px;
+}
+
+h1{
+text-align:center;
+font-size:18px;
+margin-bottom:8px;
+letter-spacing:2px;
+}
+
+.timer{
+text-align:center;
+margin-bottom:10px;
+font-size:14px;
+}
+
+.display{
+background:#000;
+border:2px solid #00ff9c;
+font-size:34px;
+letter-spacing:12px;
+padding:14px;
+text-align:center;
+margin-bottom:12px;
+}
+
+.feedback{
+background:#000;
+border:2px solid #00ff9c;
+height:120px;
+overflow:auto;
+padding:10px;
+margin-bottom:12px;
+font-size:18px;
+}
+
+.correct{color:#00ff00;font-weight:bold}
+.misplaced{color:#ff4040;font-weight:bold}
+
+.keypad{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+}
+
+button{
+background:#00281c;
+color:#00ff9c;
+border:2px solid #00ff9c;
+padding:16px;
+font-size:20px;
+cursor:pointer;
+border-radius:4px;
+}
+
+button:active{
+background:#004d36;
+transform:scale(.96);
+}
+
+.controls{
+margin-top:8px;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+}
+
+@media (max-width:500px){
+.display{font-size:28px}
+.feedback{font-size:16px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="terminal">
+<h1>REACTOR CORE ACCESS</h1>
+<div class="timer">REACTOR TIMER: <span id="timer">120</span>s</div>
+
+<div id="display" class="display">----</div>
+
+<div id="feedback" class="feedback"></div>
+
+<div class="keypad">
+<button onclick="press(1)">1</button>
+<button onclick="press(2)">2</button>
+<button onclick="press(3)">3</button>
+<button onclick="press(4)">4</button>
+<button onclick="press(5)">5</button>
+<button onclick="press(6)">6</button>
+<button onclick="press(7)">7</button>
+<button onclick="press(8)">8</button>
+<button onclick="press(9)">9</button>
+<button onclick="press(0)">0</button>
+</div>
+
+<div class="controls">
+<button onclick="check()">ENTER</button>
+<button onclick="clearInput()">CLEAR</button>
+</div>
+</div>
+
+<script>
+
+/* SECRET CODE */
+let secret="";
+for(let i=0;i<4;i++) secret+=Math.floor(Math.random()*10);
+
+let input="";
+let time=120;
+
+const display=document.getElementById("display");
+const feedback=document.getElementById("feedback");
+const timerEl=document.getElementById("timer");
+
+function beep(freq,duration){
+const ctx=new(window.AudioContext||window.webkitAudioContext)();
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+osc.connect(gain);
+gain.connect(ctx.destination);
+osc.frequency.value=freq;
+osc.start();
+gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+duration/1000);
+setTimeout(()=>ctx.close(),duration);
+}
+
+function updateDisplay(){
+display.innerText=input.padEnd(4,"-");
+}
+
+function press(n){
+if(input.length<4){
+input+=n;
+beep(600,80);
+updateDisplay();
+}
+}
+
+function clearInput(){
+input="";
+updateDisplay();
+beep(200,120);
+}
+
+function mastermind(guess){
+let correct=0;
+let misplaced=0;
+
+let secretArr=secret.split("");
+let guessArr=guess.split("");
+
+for(let i=0;i<4;i++){
+if(guessArr[i]===secretArr[i]){
+correct++;
+secretArr[i]=null;
+guessArr[i]=null;
+}
+}
+
+for(let i=0;i<4;i++){
+if(guessArr[i] && secretArr.includes(guessArr[i])){
+misplaced++;
+secretArr[secretArr.indexOf(guessArr[i])]=null;
+}
+}
+
+return {correct,misplaced};
+}
+
+function check(){
+
+if(input.length!==4) return;
+
+let resultHTML="";
+
+for(let i=0;i<4;i++){
+if(input[i]===secret[i]){
+resultHTML+=`<span class='correct'>${input[i]}</span> `;
+}
+else if(secret.includes(input[i])){
+resultHTML+=`<span class='misplaced'>${input[i]}</span> `;
+}
+else{
+resultHTML+=input[i]+" ";
+}
+}
+
+let mm=mastermind(input);
+
+feedback.innerHTML=`${input} → ${resultHTML} | ✔ ${mm.correct} | ? ${mm.misplaced}<br>`+feedback.innerHTML;
+
+if(input===secret){
+beep(1200,300);
+setTimeout(()=>alert("ACCESS GRANTED ☢"),200);
+setTimeout(()=>location.reload(),1200);
+}
+
+input="";
+updateDisplay();
+}
+
+/* TIMER (meltdown mode) */
+setInterval(()=>{
+time--;
+timerEl.textContent=time;
+
+if(time<20) beep(150,60);
+
+if(time<=0){
+alert("REACTOR MELTDOWN");
+location.reload();
+}
+
+},1000);
+
+updateDisplay();
+
+</script>
+
+</body>
+</html>
