@@ -6,7 +6,7 @@
 <title>REACTOR ACCESS TERMINAL</title>
 <style>
 body{
-background:#000;
+background:#000 url('https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1600&q=60') center/cover no-repeat;
 color:#00ff9c;
 font-family:"Courier New",monospace;
 margin:0;
@@ -15,6 +15,15 @@ justify-content:center;
 align-items:center;
 height:100vh;
 overflow:hidden;
+}
+
+/* DARK OVERLAY */
+body:after{
+content:"";
+position:fixed;
+left:0;right:0;top:0;bottom:0;
+background:rgba(0,20,10,0.75);
+pointer-events:none;
 }
 
 /* CRT EFFECT */
@@ -50,6 +59,8 @@ width:420px;
 max-width:95vw;
 box-shadow:0 0 25px #00ff9c;
 border-radius:6px;
+position:relative;
+z-index:1;
 }
 
 h1{
@@ -85,7 +96,7 @@ margin-bottom:12px;
 font-size:18px;
 }
 
-.correct{color:#00ff00;font-weight:bold}
+.correct{color:#ffd400;font-weight:bold}
 .misplaced{color:#ff4040;font-weight:bold}
 
 .keypad{
@@ -244,8 +255,24 @@ feedback.innerHTML=`${input} → ${resultHTML} | ✔ ${mm.correct} | ? ${mm.misp
 
 if(input===secret){
 beep(1200,300);
-setTimeout(()=>alert("ACCESS GRANTED ☢"),200);
-setTimeout(()=>location.reload(),1200);
+
+// generate authorization code
+const authCode = "AUTH-" + Math.random().toString(36).substring(2,8).toUpperCase();
+localStorage.setItem("reactorAuthCode",authCode);
+
+setTimeout(()=>{
+alert("ACCESS GRANTED ☢
+
+Your authorization code:
+" + authCode + "
+
+Copy this code and paste it into the Google Form.");
+
+// redirect with code parameter
+window.location.href = "https://forms.gle/PASTE_YOUR_GOOGLE_FORM_LINK_HERE?code=" + authCode;
+
+},300);
+},300);
 }
 
 input="";
